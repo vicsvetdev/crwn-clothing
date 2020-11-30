@@ -1,7 +1,7 @@
 import React from 'react';
 
 import FormInput from '../form-input/form-input.component.jsx';
-import CustomBotton from '../custom-button/custom-button.component.jsx';
+import CustomButton from '../custom-button/custom-button.component.jsx';
 
 import {
   auth,
@@ -9,7 +9,6 @@ import {
 } from '../../firebase/firebase.utils.js';
 
 import './sign-up.styles.scss';
-import CustomButton from '../custom-button/custom-button.component.jsx';
 
 class SingUp extends React.Component {
   constructor() {
@@ -28,7 +27,7 @@ class SingUp extends React.Component {
 
     const { displayName, email, password, confirmPassword } = this.state;
 
-    if (password != confirmPassword) {
+    if (password !== confirmPassword) {
       alert("passwords don't match");
       return;
     }
