@@ -38,6 +38,16 @@ export const createUserProfileDocument = async (userAuth, additionalData) => {
   return userRef;
 };
 
+export const addCartItems = async (userAuth, cartItems) => {
+  const userRef = firestore.doc(`users/${userAuth.uid}`);
+
+  try {
+    await userRef.set({ cartItems }, { merge: true });
+  } catch (error) {
+    console.log('error setting cartItems', error.message);
+  }
+};
+
 firebase.initializeApp(config);
 
 export const addCollectionsAndDocuments = async (

@@ -1,6 +1,9 @@
-import { takeLatest, put, all, call } from 'redux-saga/effects';
+import { takeLatest, put, all, call, select } from 'redux-saga/effects';
 
 import UserActionTypes from './user.types';
+import CartActionTypes from '../cart/cart.types';
+
+import { selectCartItems } from '../cart/cart.selectors';
 
 import {
   signInSuccess,
@@ -16,7 +19,9 @@ import {
   googleProvider,
   createUserProfileDocument,
   getCurrentUser,
+  addCartItems,
 } from '../../firebase/firebase.utils';
+import { setCartItems } from '../cart/cart.actions';
 
 export function* getSnapshotFromUserAuth(userAuth, additionalData) {
   try {
@@ -26,9 +31,25 @@ export function* getSnapshotFromUserAuth(userAuth, additionalData) {
       additionalData
     );
     const userSnapshot = yield userRef.get();
+    const cartItems = userSnapshot.data().cartItems;
+    console.log(cartItems);
     yield put(signInSuccess({ id: userSnapshot.id, ...userSnapshot.data() }));
+    yield put(setCartItems(cartItems));
   } catch (error) {
     yield put(signInFailure(error));
+  }
+}
+
+export function* setCartItemsInFirebase() {
+  try {
+    const userAuth = yield getCurrentUser();
+    if (!userAuth) return;
+
+    const cartItems = yield select(selectCartItems);
+
+    addCartItems(userAuth, cartItems);
+  } catch (error) {
+    yield console.log('failed to add items to firebase', error.message);
   }
 }
 
@@ -72,7 +93,10 @@ export function* signOut() {
 export function* signUp({ payload: { email, password, displayName } }) {
   try {
     const { user } = yield auth.createUserWithEmailAndPassword(email, password);
-    yield put(signUpSuccess({ user, additionalData: { displayName } }));
+    const cartItems = yield select(selectCartItems);
+    yield put(
+      signUpSuccess({ user, additionalData: { displayName, cartItems } })
+    );
   } catch (error) {
     yield put(signUpFailure(error));
   }
@@ -106,6 +130,17 @@ export function* onSignUpSuccess() {
   yield takeLatest(UserActionTypes.SIGN_UP_SUCCESS, signInAfterSignUp);
 }
 
+export function* onCartItemsChange() {
+  yield takeLatest(
+    [
+      CartActionTypes.ADD_ITEM,
+      CartActionTypes.REMOVE_ITEM,
+      CartActionTypes.CLEAR_ITEM_FROM_CART,
+    ],
+    setCartItemsInFirebase
+  );
+}
+
 export function* userSagas() {
   yield all([
     call(onGoogleSignInStart),
@@ -114,5 +149,6 @@ export function* userSagas() {
     call(onSignOutStart),
     call(onSignUpStart),
     call(onSignUpSuccess),
+    call(onCartItemsChange),
   ]);
 }
