@@ -12,6 +12,8 @@ const config = {
   appId: '1:1051813934309:web:8dd7661fd8250fd214900c',
 };
 
+firebase.initializeApp(config);
+
 export const createUserProfileDocument = async (userAuth, additionalData) => {
   if (!userAuth) return;
 
@@ -21,13 +23,12 @@ export const createUserProfileDocument = async (userAuth, additionalData) => {
 
   if (!snapShot.exists) {
     const { displayName, email } = userAuth;
-    const createAt = new Date();
-
+    const createdAt = new Date();
     try {
       await userRef.set({
         displayName,
         email,
-        createAt,
+        createdAt,
         ...additionalData,
       });
     } catch (error) {
@@ -38,19 +39,20 @@ export const createUserProfileDocument = async (userAuth, additionalData) => {
   return userRef;
 };
 
-export const addCartItems = async (userAuth, cartItems) => {
-  const userRef = firestore.doc(`users/${userAuth.uid}`);
+export const getUserCartRef = async (userId) => {
+  const cartsRef = firestore.collection('carts').where('userId', '==', userId);
+  const snapShot = await cartsRef.get();
 
-  try {
-    await userRef.set({ cartItems }, { merge: true });
-  } catch (error) {
-    console.log('error setting cartItems', error.message);
+  if (snapShot.empty) {
+    const cartDocRef = firestore.collection('carts').doc();
+    await cartDocRef.set({ userId, cartItems: [] });
+    return cartDocRef;
+  } else {
+    return snapShot.docs[0].ref;
   }
 };
 
-firebase.initializeApp(config);
-
-export const addCollectionsAndDocuments = async (
+export const addCollectionAndDocuments = async (
   collectionKey,
   objectsToAdd
 ) => {
